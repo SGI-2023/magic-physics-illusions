@@ -94,7 +94,7 @@ def plot_stability_heatmap(mesh,add_convex_hull: bool = False):
 
     # Compute necessary data for plot
     faces = [mesh.vertices[face] for face in mesh.faces]
-    colors = plt.cm.RdYlGn(scaled_dp)
+    colors = plt.cm.RdYlGn(dp)#! Had scaled before
     face_colors = colors[mesh.faces].mean(axis=1)
 
     # Make the plot
@@ -128,19 +128,19 @@ def plot_stability_heatmap(mesh,add_convex_hull: bool = False):
     p10_ch, p90_ch = np.percentile(dp_ch, [10, 90])
     scaled_dp_ch = (dp_ch - p10_ch) / (p90_ch - p10_ch)
     scaled_dp_ch = np.clip(scaled_dp_ch, 0, 1)
-    colors_ch = plt.cm.RdYlGn(scaled_dp_ch)
+    colors_ch = plt.cm.RdYlGn(dp_ch)#! had scaled before
     face_colors_ch = colors_ch[mesh.faces].mean(axis=1)
 
     # Make the plot
     ax2 = fig.add_subplot(plot_layout+2, projection='3d')
-    poly3d = Poly3DCollection(faces, facecolors=face_colors_ch)
-    ax2.add_collection3d(poly3d)
+    poly3d_ch = Poly3DCollection(faces, facecolors=face_colors_ch)
+    ax2.add_collection3d(poly3d_ch)
 
     # Set axis limits based on mesh extents
     ax2.set_xlim(ax1.get_xlim())
     ax2.set_ylim(ax1.get_ylim())
     ax2.set_zlim(ax1.get_zlim())
-    ax2.title.set_text('Stability')
+    ax2.title.set_text('Stability as perceived by people')
     ax2.axis("off")
     sm = cm.ScalarMappable(cmap=plt.cm.RdYlGn)
     cb = fig.colorbar(sm, ax=ax2, orientation="vertical", shrink=0.6)
