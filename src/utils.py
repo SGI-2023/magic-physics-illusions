@@ -4,6 +4,7 @@ import numpy as np
 from matplotlib import cm
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection # used for 3D visualization 
 
+
 def plot_com(mesh, add_convex_hull: bool = False):
     """
     Plots the center of mass of the given mesh.
@@ -67,6 +68,8 @@ def compute_stability_forall_vertices(mesh,use_com_of_ch: bool = False):
         COM = mesh.center_mass
     # Get the unit vertex normals
     vertex_normals = mesh.vertex_normals
+    norm = np.linalg.norm(vertex_normals, axis=1)[:, None]
+    vertex_normals = vertex_normals/norm
     # Normalized vectores to COM
     vertex_to_COM = COM - mesh.vertices
     norm = np.linalg.norm(vertex_to_COM, axis=1)[:, None]
