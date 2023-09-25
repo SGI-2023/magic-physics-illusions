@@ -70,7 +70,7 @@ def compute_stability_forall_vertices(mesh,use_com_of_ch: bool = False):
     vertex_normals = mesh.vertex_normals
     norm = np.linalg.norm(vertex_normals, axis=1)[:, None]
     vertex_normals = vertex_normals/norm
-    # Normalized vectores to COM
+    # Normalized vectors to COM
     vertex_to_COM = COM - mesh.vertices
     norm = np.linalg.norm(vertex_to_COM, axis=1)[:, None]
     vertex_to_COM = vertex_to_COM/norm
