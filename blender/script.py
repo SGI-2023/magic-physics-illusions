@@ -3,9 +3,11 @@ import math
 import trimesh
 import numpy as np, scipy as sp
 import matplotlib.pyplot as plt
+import json, os, pickle
 
 mesh_name = "my_hand"
 armature_name = "Armature"
+my_dir = "/Users/unaicaja/Documents/GitHub/magic-physics-illusions/blender"
 #target = bpy.data.objects["target"]
 
 # From stackoverflow (for printing into console here)
@@ -205,28 +207,57 @@ def run_target_optimization(epochs,step,reg_coef,v_idx=None,delta=0.0001):
     print('stopped after %i epochs' % i)
     
 #################################################
+# Method that saves the original angles for the armature in a text file and
+# returns the angles as a dictionary
+def get_bone_angles():
+    # First check if the text file exists
+    angle_file_name = os.path.join(my_dir,armature_name+"_angles.pkl")
+    if os.path.isfile(angle_file_name):
+        # If the file exists, we just read it and return it
+        with open(angle_file_name, 'rb') as file:
+            bone_angles = pickle.load(file)
+            return bone_angles
+    # If there is no angle file, we make one
+    # Get the armature & target
+    armature = bpy.data.objects.get(armature_name)
+    # Set mode to pose + get bone (assuming armature is selected)
+    bpy.ops.object.mode_set(mode='POSE')
+    # Dictionary in which we will sabe the angles
+    bone_angles = {}
+    for bone in armature.pose.bones:
+        bone.rotation_mode = 'XYZ'
+        bone_angles[bone.name] = bone.rotation_euler[:]
+    # Save the dictionary
+    with open(angle_file_name, 'wb') as file:
+        pickle.dump(bone_angles, file)
+    return bone_angles
+        
+
+#################################################
 # New optimization algo (gradient descent instead of fixed step-size)
-def approx_grad_descent(bone,v_idx,step,reg_coef = 0.01,w1=2,w2=1,barrier=None):
+def approx_grad_descent(bone,v_idx,step,bone_angles,reg_coef = 0.01,w1=2,w2=1,barrier=None):
     '''Does one gradient descent step on each angle for the bone'''
     
     # Save the initial angles for regularization purposes
-    try:
-        bone["initial_angles"] = bone["initial_angles"]
-    except:
-        bone["initial_angles"] = [bone.rotation_euler[i] for i in range(3)]
+#    try:
+#        bone["initial_angles"] = bone["initial_angles"]
+#    except:
+#        bone["initial_angles"] = [bone.rotation_euler[i] for i in range(3)]
     
+    # Read the initial angles
+    initial_angles = bone_angles[bone.name]
     # Actual optimization
     bone.rotation_mode = 'XYZ'
     for i in range(3):
         # Compute energies at two points
         bone.rotation_euler[i] += step
         plus_angle = bone.rotation_euler[i]
-        plus_reg = (bone["initial_angles"][i] - plus_angle)**2*reg_coef
+        plus_reg = (initial_angles[i] - plus_angle)**2*reg_coef
         plus_energy = objective_function(v_idx,w1=w1,w2=w2,barrier=barrier) + plus_reg  # NOTE: Change to "energy()" for testing target task!
         # Repeat
         bone.rotation_euler[i] -= 2 * step
         minus_angle = bone.rotation_euler[i]
-        minus_reg = (bone["initial_angles"][i] - minus_angle)**2*reg_coef
+        minus_reg = (initial_angles[i] - minus_angle)**2*reg_coef
         minus_energy = objective_function(v_idx,w1=w1,w2=w2,barrier=barrier) + minus_reg  # NOTE: Change to "energy()" for testing target task!
         # Set the angle back to its original value
         bone.rotation_euler[i] += step
@@ -237,7 +268,7 @@ def approx_grad_descent(bone,v_idx,step,reg_coef = 0.01,w1=2,w2=1,barrier=None):
         
     # Recurse
     for child in bone.children:
-        approx_grad_descent(child,v_idx,step,reg_coef,w1=w1,w2=w2,barrier=barrier)
+        approx_grad_descent(child,v_idx,step,bone_angles,reg_coef,w1=w1,w2=w2,barrier=barrier)
 
 #################################################
 def run_optimization(epochs,step,reg_coef,v_idx=None,delta=0.0001,w1=2,w2=1,barrier=None):
@@ -256,12 +287,15 @@ def run_optimization(epochs,step,reg_coef,v_idx=None,delta=0.0001,w1=2,w2=1,barr
     print("The chosen index is {idx}".format(idx=v_idx))
     print("With values dp={a}, dp_ch={b}".format(a=dp_old,b=dp_ch_old))
     
+    # Get the initial angles for regularization
+    bone_angles = get_bone_angles()
     # Run the optimization loop
     for i in range(epochs):
         old_energy = objective_function(v_idx,w1=w1,w2=w2,barrier=barrier)  # NOTE: Change to "energy()" for testing target task.
         for bone in armature.pose.bones:
             if not bone.parent:
-                approx_grad_descent(bone,v_idx,step,reg_coef,w1=w1,w2=w2,barrier=barrier)
+                approx_grad_descent(bone,v_idx,step,bone_angles,
+                reg_coef,w1=w1,w2=w2,barrier=barrier)
         # Termination criterion without regularization
         new_energy = objective_function(v_idx,w1=w1,w2=w2,barrier=barrier)
         energy_history.append(new_energy)
@@ -324,15 +358,16 @@ def reorient(v_idx, disp_balls=False,ball_size=0.001):
     
     
 #################################################
+
 finger_tips = [685,857,1763,1251,1360]
-pics_path = "/Users/unaicaja/Documents/GitHub/magic-physics-illusions/blender/pics"
+#pics_path = "/Users/unaicaja/Documents/GitHub/magic-physics-illusions/blender/pics"
 finger_num = 3
 v_idx = finger_tips[finger_num-1]
-#epochs = 0;step = 0.02;reg_coef = 1;delta=0.001
-#w1=0.1;w2=4;barrier=0.95
-#energy_history = run_optimization(epochs,step,
-#    reg_coef,v_idx=v_idx,delta=delta,w1=w1,w2=w2,barrier=barrier)
-#    
+epochs = 4;step = 0.02;reg_coef = 1;delta=0.001
+w1=0.1;w2=4;barrier=None
+energy_history = run_optimization(epochs,step,
+    reg_coef,v_idx=v_idx,delta=delta,w1=w1,w2=w2,barrier=barrier)
+    
 ## Making energy plot
 #xx = range(len(energy_history))
 #plt.clf()
@@ -342,4 +377,4 @@ v_idx = finger_tips[finger_num-1]
 #plt.ylabel("Obj. value")
 #path = pics_path + "/energy.pdf"
 #plt.savefig(path)
-reorient(v_idx=v_idx,disp_balls = True,ball_size=0.01)
+#reorient(v_idx=v_idx,disp_balls = True,ball_size=0.01)
