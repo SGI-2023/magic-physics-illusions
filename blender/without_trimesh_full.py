@@ -78,23 +78,23 @@ def dfs_bone(bone,v_idx,mean=0.01,dev=0.005,reg_coef = 0.01):
 #################################################
 # DEPRECATED
 #################################################
-def get_trimesh_object():
-    # Convert mesh to bmesh
-    dmesh = get_deformed_mesh()
-    bm = bmesh.new()
-    bm.from_mesh(dmesh)
-    # Get the coordinates of all vertices
-    M = mesh.matrix_world
-    V = np.array([M @ v.co for v in bm.verts])
-    # Get face list
-    F = [
-    [v.index for v in f.verts]
-    for f in bm.faces
-    ]
-    # Get the face normals
-    N = [np.array(f.normal) for f in bm.faces]
-    
-    return trimesh.Trimesh(vertices=V,faces=F,face_normals=N)
+#def get_trimesh_object():
+#    # Convert mesh to bmesh
+#    dmesh = get_deformed_mesh()
+#    bm = bmesh.new()
+#    bm.from_mesh(dmesh)
+#    # Get the coordinates of all vertices
+#    M = mesh.matrix_world
+#    V = np.array([M @ v.co for v in bm.verts])
+#    # Get face list
+#    F = [
+#    [v.index for v in f.verts]
+#    for f in bm.faces
+#    ]
+#    # Get the face normals
+#    N = [np.array(f.normal) for f in bm.faces]
+#    
+#    return trimesh.Trimesh(vertices=V,faces=F,face_normals=N)
 
 
 #################################################
@@ -231,7 +231,7 @@ def show_vertex(v_idx,ball_size=0.003):
 def show_com(ball_size=0.003):
     """Creates an icosahedron at the location of the COM of the mesh"""
     # Get the mesh
-    tmesh = get_trimesh_object()
+#    tmesh = get_trimesh_object()
     COM = get_com()
     # Draw the icosahedron
     bpy.ops.mesh.primitive_ico_sphere_add(radius=1,
@@ -361,6 +361,7 @@ def run_optimization(epochs,step,reg_coef,v_idx=None,delta=0.0001,w1=2,w2=1,barr
         
     # Print final values of dot products
     dp, dp_ch = compute_dot_products(v_idx)
+    print("Final values dp={a}, dp_ch={b}".format(a=dp,b=dp_ch))
     print("Variations: dp_new-dp_old={a}, dp_ch_new-dp_ch_old={b}".format(a=dp-dp_old,b=dp_ch-dp_ch_old))
     # Update the scene to reflect the changes
     bpy.context.scene.frame_set(bpy.context.scene.frame_current)
@@ -370,7 +371,7 @@ def run_optimization(epochs,step,reg_coef,v_idx=None,delta=0.0001,w1=2,w2=1,barr
 def reorient(v_idx, disp_balls=False,ball_size=0.001):
     # Get the COM and vertex (contains some duplicate code)
     # 1 – COM
-    tmesh = get_trimesh_object()
+#    tmesh = get_trimesh_object()
     COM = get_com()
     # 2 – Vertex
     dmesh = get_deformed_mesh()
@@ -416,22 +417,22 @@ def reorient(v_idx, disp_balls=False,ball_size=0.001):
 start_time = time.time()
 finger_tips = [685,857,1763,1251,1360]
 #pics_path = "/Users/unaicaja/Documents/GitHub/magic-physics-illusions/blender/pics"
-finger_num = 1
+finger_num = 3
 v_idx = finger_tips[finger_num-1]
-epochs = 50;step = 0.01;reg_coef = 1;delta=0.001;w1=4;w2=1
+epochs = 30;step = 0.01;reg_coef = 1;delta=0.001;w1=4;w2=1
 barrier=None
 energy_history = run_optimization(epochs,step,
     reg_coef,v_idx=v_idx,delta=delta,w1=w1,w2=w2,barrier=barrier)
     
 print(time.time() - start_time)
 
-## Making energy plot
-#xx = range(len(energy_history))
-#plt.clf()
-#plt.plot(xx,energy_history)
-#plt.title("Finger {a}, step {b}, reg_coef {c}".format(a=finger_num,b=step,c=reg_coef))
-#plt.xlabel("Epochs")
-#plt.ylabel("Obj. value")
-#path = pics_path + "/energy.pdf"
-#plt.savefig(path)
-#reorient(v_idx=v_idx,disp_balls = True,ball_size=0.01)
+# Making energy plot
+xx = range(len(energy_history))
+plt.clf()
+plt.plot(xx,energy_history)
+plt.title("Finger {a}, step {b}, reg_coef {c}".format(a=finger_num,b=step,c=reg_coef))
+plt.xlabel("Epochs")
+plt.ylabel("Obj. value")
+path = my_dir + "/energy.pdf"
+plt.savefig(path)
+reorient(v_idx=v_idx,disp_balls = True,ball_size=0.01)
