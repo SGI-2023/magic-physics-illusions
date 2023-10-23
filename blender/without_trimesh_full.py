@@ -2,13 +2,13 @@ import bpy, bmesh, mathutils
 import math
 import numpy as np, scipy as sp
 import matplotlib.pyplot as plt
-import json, os, pickle
+import os, pickle
 import time
 import copy
 
 mesh_name = "my_hand"
 armature_name = "Armature"
-my_dir = "/Users/adityaabhyankar/Desktop/Programming/Magic-Physics-Illusions/magic-physics-illusions/blender"
+my_dir = "/Users/unaicaja/Documents/GitHub/magic-physics-illusions/blender"
 #target = bpy.data.objects["target"]
 
 # From stackoverflow (for printing into console here)
@@ -261,7 +261,7 @@ def run_target_optimization(epochs,step,reg_coef,v_idx=None,delta=0.0001):
     print('stopped after %i epochs' % i)
     
 #################################################
-# Method that saves the original angles for the armature in a text file and
+# Method that reads the original angles for the armature from a text file and
 # returns the angles as a dictionary
 def get_bone_angles():
     # First check if the text file exists
@@ -272,7 +272,7 @@ def get_bone_angles():
             bone_angles = pickle.load(file)
             return bone_angles
     # If there is no angle file, we make one
-    # Get the armature & target
+    # Get the armature
     armature = bpy.data.objects.get(armature_name)
     # Set mode to pose + get bone (assuming armature is selected)
     bpy.ops.object.mode_set(mode='POSE')
@@ -285,18 +285,60 @@ def get_bone_angles():
     with open(angle_file_name, 'wb') as file:
         pickle.dump(bone_angles, file)
     return bone_angles
-        
 
+#################################################
+# Saves the current bone angles to a file and restores the 
+# angles to the previous position
+def save_bone_angles(filepath):
+    # Get the armature
+    armature = bpy.data.objects.get(armature_name)
+    # Dictionary in which we will sabe the angles
+    bone_angles = {}
+    for bone in armature.pose.bones:
+        bone.rotation_mode = 'XYZ'
+        bone_angles[bone.name] = bone.rotation_euler[:]
+    # Save the dictionary
+    with open(filepath, 'wb') as file:
+        pickle.dump(bone_angles, file)
+        
+    reset_bone_angles()
+        
+#################################################
+# Sets the angles of the armature to whatever they where at the beginning
+def reset_bone_angles():
+    # Get the armature
+    initial_angles = get_bone_angles()
+    armature = bpy.data.objects.get(armature_name)
+    # Set mode to pose + get bone (assuming armature is selected)
+    bpy.ops.object.mode_set(mode='POSE')
+    # Initial angles
+    # Dictionary in which we will sabe the angles
+    bone_angles = {}
+    for bone in armature.pose.bones:
+        bone.rotation_euler = initial_angles[bone.name]
+
+#################################################
+# sets the bone angles equal to the ones stored in a file
+def set_bone_angles(filepath):
+    if not os.path.isfile(filepath):
+        raise Exception("No angles file found")
+        
+    with open(filepath, 'rb') as file:
+        bone_angles = pickle.load(file)
+        # Get the armature
+        armature = bpy.data.objects.get(armature_name)
+        # Set mode to pose + get bone (assuming armature is selected)
+        bpy.ops.object.mode_set(mode='POSE')
+        # Initial angles
+        # Dictionary in which we will sabe the angles
+        bone_angles = {}
+        for bone in armature.pose.bones:
+            bone.rotation_euler = bone_angles[bone.name]
+        
 #################################################
 # New optimization algo (gradient descent instead of fixed step-size)
 def approx_grad_descent(bone,v_idx,step,bone_angles,reg_coef = 0.01,w1=2,w2=1,barrier=None):
     '''Does one gradient descent step on each angle for the bone'''
-    
-    # Save the initial angles for regularization purposes
-#    try:
-#        bone["initial_angles"] = bone["initial_angles"]
-#    except:
-#        bone["initial_angles"] = [bone.rotation_euler[i] for i in range(3)]
     
     # Read the initial angles
     initial_angles = bone_angles[bone.name]
@@ -412,27 +454,85 @@ def reorient(v_idx, disp_balls=False,ball_size=0.001):
     # Refresh
     bpy.context.view_layer.update()
     
+#################################################
+# Computes Gaussian curvature of every vertex
+def gaussian_curvature():
+    # Get the mesh
+    mesh = get_deformed_mesh()
+    nV = len(mesh.vertices)
+    curvature = np.zeros(nV)
+    # Iterate over all vertices
+    for vertex_index in range(nV):
+        vertex = mesh.vertices[vertex_index]
+        edges = [edge for edge in mesh.edges if vertex_index in edge.vertices]
+        angles_sum = 0
+
+        # Loop through edges connected to the vertex
+        for edge in edges:
+            other_vertex_index = edge.vertices[0] if edge.vertices[1] == vertex_index else edge.vertices[1]
+            other_vertex = mesh.vertices[other_vertex_index]
+
+            # Compute angle between edges connected to the vertex
+            v1 = (other_vertex.co - vertex.co).normalized()
+            v2 = (mesh.vertices[edge.vertices[0]].co - vertex.co).normalized()
+            # Calculate the dot product and clamp it within the valid range
+            dot_product = min(1, max(-1, v1.dot(v2)))
+            angle = math.acos(dot_product)
+
+            angles_sum += angle
+
+        # Calculate Gaussian curvature
+        curvature[vertex_index] = (2 * math.pi - angles_sum) / len(edges)
+
+    return curvature
+#################################################
+# Selects a specified number of vertices using Gaussian curvature
+def select_indices_with_curvature(num_samples):
+    curvature = gaussian_curvature()
+    nV = len(curvature)
+    P = np.abs(curvature)
+    P = P/np.sum(P)
+    return np.random.choice(nV,size=num_samples,p=P,replace=False)
     
 #################################################
-start_time = time.time()
-finger_tips = [685,857,1763,1251,1360]
-#pics_path = "/Users/unaicaja/Documents/GitHub/magic-physics-illusions/blender/pics"
-finger_num = 3
-v_idx = finger_tips[finger_num-1]
-epochs = 30;step = 0.01;reg_coef = 1;delta=0.001;w1=4;w2=1
-barrier=None
-energy_history = run_optimization(epochs,step,
-    reg_coef,v_idx=v_idx,delta=delta,w1=w1,w2=w2,barrier=barrier)
-    
-print(time.time() - start_time)
 
-# Making energy plot
-xx = range(len(energy_history))
-plt.clf()
-plt.plot(xx,energy_history)
-plt.title("Finger {a}, step {b}, reg_coef {c}".format(a=finger_num,b=step,c=reg_coef))
-plt.xlabel("Epochs")
-plt.ylabel("Obj. value")
-path = my_dir + "/energy.pdf"
-plt.savefig(path)
-reorient(v_idx=v_idx,disp_balls = True,ball_size=0.01)
+curvature = gaussian_curvature()
+indices = select_indices_with_curvature(num_samples=3)
+
+epochs = 10;step = 0.01;reg_coef = 1;delta=0.001;w1=4;w2=1
+barrier=None
+for v_idx in indices:
+    energy_history = run_optimization(epochs,step,
+        reg_coef,v_idx=v_idx,delta=delta,w1=w1,w2=w2,barrier=barrier)
+    filepath = os.path.join(my_dir,"hand_test{i}.pkl".format(i=v_idx))
+    save_bone_angles(filepath)
+    
+
+#plt.clf()
+#plt.plot(np.sort(curvature))
+#plt.savefig(my_dir + "/curvature_plot.pdf")
+
+
+#start_time = time.time()
+#finger_tips = [685,857,1763,1251,1360]
+##pics_path = "/Users/unaicaja/Documents/GitHub/magic-physics-illusions/blender/pics"
+#finger_num = 3
+#v_idx = finger_tips[finger_num-1]
+#epochs = 10;step = 0.01;reg_coef = 1;delta=0.001;w1=4;w2=1
+#barrier=None
+#energy_history = run_optimization(epochs,step,
+#    reg_coef,v_idx=v_idx,delta=delta,w1=w1,w2=w2,barrier=barrier)
+
+#elapsed_time = time.time() - start_time
+#print("Computation time: " + str(elapsed_time))
+
+## Making energy plot
+#xx = range(len(energy_history))
+#plt.clf()
+#plt.plot(xx,energy_history)
+#plt.title("Finger {a}, step {b}, reg_coef {c}".format(a=finger_num,b=step,c=reg_coef))
+#plt.xlabel("Epochs")
+#plt.ylabel("Obj. value")
+#path = my_dir + "/energy.pdf"
+#plt.savefig(path)
+##reorient(v_idx=v_idx,disp_balls = True,ball_size=0.01)
