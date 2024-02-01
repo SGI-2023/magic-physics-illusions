@@ -1,0 +1,625 @@
+#LyX 2.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 544
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin unavailable
+\textclass article
+\begin_preamble
+\newcommand{\xyR}[1]{
+ \xydef@\xymatrixrowsep@{#1}}
+\newcommand{\xyC}[1]{
+  \xydef@\xymatrixcolsep@{#1}}
+\date{}
+
+\usepackage[hypertexnames=false]{hyperref}
+\usepackage{xcolor}
+\hypersetup{
+    colorlinks,
+    linkcolor={blue!50!black},
+    citecolor={green!50!black},
+    urlcolor={blue!80!black}
+}
+\usepackage[ruled,vlined,spanish,onelanguage]{algorithm2e}
+\usepackage{float,caption,subcaption}
+\end_preamble
+\use_default_options true
+\begin_modules
+eqs-within-sections
+figs-within-sections
+tabs-within-sections
+enumitem
+theorems-ams
+theorems-ams-extended
+\end_modules
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman "default" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\use_microtype false
+\use_dash_ligatures true
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\use_minted 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 2cm
+\topmargin 2cm
+\rightmargin 2cm
+\bottommargin 2cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Standard
+\begin_inset FormulaMacro
+\newcommand{\zz}{\mathbb{Z}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\nn}{\mathbb{N}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\rr}{\mathbb{R}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\qq}{\mathbb{Q}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\cc}{\mathbb{C}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\rar}{\longrightarrow}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\lar}{\longleftarrow}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\id}{\textnormal{Id}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\im}{\textnormal{Im}\,}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\gr}[1]{\textnormal{gr}(#1)}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\a}{\alpha}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\b}{\beta}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\t}{\tau}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\s}{\sigma}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\g}{\gamma}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\d}{\delta}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\e}{\varepsilon}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\o}{\omega}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\oo}{\Omega}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\l}{\lambda}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\dd}{\Delta}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\abs}[1]{\left|#1\right|}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\norm}[1]{\left\Vert #1\right\Vert }
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\partd}[2]{\frac{\partial#1}{\partial#2}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\partdd}[3]{\frac{\partial^{2}#1}{\partial#2\partial#3}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\dprod}[2]{\left\langle #1,#2\right\rangle }
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\clasec}[1]{\mathcal{C}^{#1}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\set}[1]{\left\{  #1\right\}  }
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\ss}{\mathbb{S}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\ff}{\mathbb{F}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\floor}[1]{\left\lfloor #1\right\rfloor }
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\argmax}[2]{\underset{#1}{\textnormal{arg max}}#2}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\argmin}[2]{\underset{#1}{\textnormal{arg min}}#2}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\ovl}[1]{\overline{#1}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\Tau}{\mathcal{T}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\pcal}{\mathcal{P}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\udb}[2]{\underbrace{#1}_{#2}}
+\end_inset
+
+
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+newcommand{
+\backslash
+rvline}{
+\backslash
+hspace*{-
+\backslash
+arraycolsep}
+\backslash
+vline
+\backslash
+hspace*{-
+\backslash
+arraycolsep}}
+\end_layout
+
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\wh}[1]{\widehat{#1}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\bset}[2]{\set{#1\left\vert \;#2\right.}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\ovb}[2]{\overbrace{#1}^{#2}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\igpor}[1]{\overset{\substack{#1\\
+ \downarrow
+}
+ }{=}}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\com}[1]{\text{com}\left(#1\right)}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\comc}[1]{\text{com}_{0}\left(#1\right)}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\mass}[1]{\text{mass}\left(#1\right)}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\massc}[1]{\text{mass}_{0}\left(#1\right)}
+\end_inset
+
+
+\begin_inset FormulaMacro
+\newcommand{\vol}[1]{\text{vol}\left(#1\right)}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Title
+Notes for magic tricks project
+\end_layout
+
+\begin_layout Author
+Francisco Unai Caja López
+\end_layout
+
+\begin_layout Section
+Objective function
+\end_layout
+
+\begin_layout Standard
+Let 
+\begin_inset Formula $p\in\rr^{3}$
+\end_inset
+
+ be the point at which we want to balance the object, 
+\begin_inset Formula $\vec{n}$
+\end_inset
+
+ be its unit normal and 
+\begin_inset Formula $p_{\text{com}}$
+\end_inset
+
+ the center of mass of the object.
+ Then, if we define 
+\begin_inset Formula 
+\[
+\vec{v}_{\text{com}}=\frac{p_{\text{com}}-p}{\abs{p_{\text{com}}-p}},
+\]
+
+\end_inset
+
+we know the scene achieves true balance if 
+\begin_inset Formula $\dprod{\vec{n}}{\vec{v}_{\text{com}}}\sim1$
+\end_inset
+
+.
+ On the other hand, intuitive judgement seems to be better approximated
+ by the center of mass of the convex hull of the object 
+\begin_inset Formula $p_{\text{com\_ch}}$
+\end_inset
+
+.
+ Therefore, if we let 
+\begin_inset Formula 
+\[
+\vec{v}_{\text{com\_ch}}=\frac{p_{\text{com\_ch}}-p}{\abs{p_{\text{com\_ch}}-p}},
+\]
+
+\end_inset
+
+then we would like 
+\begin_inset Formula $\dprod{\vec{n}}{\vec{v}_{\text{com\_ch}}}$
+\end_inset
+
+ to be as far away as possible from 
+\begin_inset Formula $1$
+\end_inset
+
+.
+ Therefore, the first objective function we tried to minimize was 
+\begin_inset Formula 
+\[
+w_{2}\dprod{\vec{n}}{\vec{v}_{\text{com\_ch}}}-w_{1}\dprod{\vec{n}}{\vec{v}_{\text{com}}}.
+\]
+
+\end_inset
+
+However, the distance from the centers of mass to the point also play an
+ important role, so we changed this objective function to 
+\begin_inset Formula 
+\[
+\boxed{w_{1}\abs{p_{\text{com}}-p}^{2}\left(\dprod{\vec{n}}{\vec{v}_{\text{com}}}-1\right)^{2}+w_{2}\abs{p_{\text{com\_ch}}-p}^{2}\left(\dprod{\vec{n}}{\vec{v}_{\text{com\_ch}}}+1\right)^{2}}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Changing the density of a given region
+\end_layout
+
+\begin_layout Standard
+Remember that a region 
+\begin_inset Formula $B\subset\rr^{3}$
+\end_inset
+
+ inside 3D space has center of mass
+\begin_inset Formula 
+\[
+\com B=\frac{1}{\mass B}\int_{B}\vec{p}\,d\rho(\vec{p})=\frac{1}{\mass B}\left(\int_{B}x\,d\rho(\vec{p}),\int_{B}y\,d\rho(\vec{p}),\int_{B}z\,d\rho(\vec{p})\right)
+\]
+
+\end_inset
+
+where 
+\begin_inset Formula $\vec{p}=(x,y,z)$
+\end_inset
+
+, 
+\begin_inset Formula $\rho(\vec{p})$
+\end_inset
+
+ represents the density at point 
+\begin_inset Formula $\vec{p}$
+\end_inset
+
+ and 
+\begin_inset Formula $\mass B=\int_{B}d\rho(\vec{p})$
+\end_inset
+
+ is the total mass.
+\end_layout
+
+\begin_layout Notation*
+Given a region 
+\begin_inset Formula $R$
+\end_inset
+
+ in 3D space, keeping into account a density function 
+\begin_inset Formula $\rho$
+\end_inset
+
+, its center of mass will be denoted 
+\begin_inset Formula $\com B$
+\end_inset
+
+.
+ When the density is assumed to be constant equal to 
+\begin_inset Formula $1$
+\end_inset
+
+, 
+\begin_inset Formula $\rho\equiv1$
+\end_inset
+
+, it will be denoted 
+\begin_inset Formula $\comc B$
+\end_inset
+
+.
+ The same goes for 
+\begin_inset Formula $\mass B$
+\end_inset
+
+ and 
+\begin_inset Formula $\massc B$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Now consider a especial region 
+\begin_inset Formula $R\subset B$
+\end_inset
+
+ inside the body and consider the density
+\begin_inset Formula 
+\[
+\rho(\vec{p})=\begin{cases}
+\alpha & \text{if }\vec{p}\in R\\
+1 & \text{if }\vec{p}\in B\setminus R
+\end{cases}.
+\]
+
+\end_inset
+
+Then 
+\begin_inset Formula 
+\[
+\begin{aligned}\mass B\com B & =\int_{B}\vec{p}\,d\rho(\vec{p})=\alpha\int_{R}\vec{p}\,d\vec{p}+\int_{B\setminus R}\vec{p}\,d\vec{p}\\
+ & =(\alpha-1)\int_{R}\vec{p}\,d\vec{p}+\int_{B}\vec{p}\,d\vec{p}\\
+ & =(\alpha-1)\vol R\comc R+\vol B\comc B.
+\end{aligned}
+\]
+
+\end_inset
+
+So, using 
+\begin_inset Formula $\mass B=\alpha\vol R+\vol{B\setminus R}=(\alpha-1)\vol R+\vol B$
+\end_inset
+
+ we deduce
+\begin_inset Formula 
+\[
+\com B=\frac{(\alpha-1)\vol R}{(\alpha-1)\vol R+\vol B}\cdot\comc R+\frac{\vol B}{(\alpha-1)\vol R+\vol B}\cdot\comc B
+\]
+
+\end_inset
+
+which can be rewritten as
+\begin_inset Formula 
+\[
+\boxed{\com B=(1-\theta)\cdot\comc R+\theta\cdot\comc B,\quad\theta:=\frac{\vol B}{(\alpha-1)\vol R+\vol B}}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Case
+The especial case where 
+\begin_inset Formula $R\subset B$
+\end_inset
+
+ is a hollow region of the body (i.e.
+ 
+\begin_inset Formula $\alpha=0$
+\end_inset
+
+) we get 
+\begin_inset Formula 
+\[
+\boxed{\com B=(1-\theta)\cdot\comc R+\theta\cdot\comc B,\quad\theta:=\frac{\vol B}{\vol B-\vol R}}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Case
+If we use ABS material with a metal ball on the inside then we get 
+\begin_inset Formula $\a\approx8$
+\end_inset
+
+ and 
+\begin_inset Formula 
+\[
+\theta\frac{\vol B}{(\alpha-1)\vol R+\vol B}=\frac{1}{C\frac{r^{3}}{\vol B}+1}.
+\]
+
+\end_inset
+
+Theta decreases A LOT the more we can increase 
+\begin_inset Formula $r$
+\end_inset
+
+.
+ Therefore, the bigger the ball, the more the COM moves.
+\end_layout
+
+\end_body
+\end_document

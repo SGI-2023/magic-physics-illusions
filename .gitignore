@@ -3,6 +3,8 @@
 ShapeNetSem
 ShapeNetCore.v2
 ShapeNet_results
+Rignet
+rignet_watertight
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -1,11 +1,13 @@
 import bpy, bmesh, mathutils
-import math
-import trimesh
+import math, mathutils
 import numpy as np, scipy as sp
 import matplotlib.pyplot as plt
-import json, os, pickle
+import os, pickle
+import time
+import copy
+import trimesh
 
-mesh_name = "my_hand"
+mesh_name = "_t_obj_AnonymousMesh0"
 armature_name = "Armature"
 my_dir = "/Users/unaicaja/Documents/GitHub/magic-physics-illusions/blender"
 #target = bpy.data.objects["target"]
@@ -75,6 +77,8 @@ def dfs_bone(bone,v_idx,mean=0.01,dev=0.005,reg_coef = 0.01):
         dfs_bone(child,v_idx)
 
 #################################################
+# DEPRECATED
+#################################################
 def get_trimesh_object():
     # Convert mesh to bmesh
     dmesh = get_deformed_mesh()
@@ -92,6 +96,58 @@ def get_trimesh_object():
     N = [np.array(f.normal) for f in bm.faces]
     
     return trimesh.Trimesh(vertices=V,faces=F,face_normals=N)
+
+
+#################################################
+def get_com():
+    tmesh = get_trimesh_object()
+    return tmesh.center_mass
+#    # Select the object to duplicate
+#    bpy.context.view_layer.objects.active = mesh
+#    bpy.ops.object.mode_set(mode='OBJECT')
+#    bpy.ops.object.select_all(action='DESELECT')  # Deselect all objects
+#    mesh.select_set(True)  # Select the object you want to duplicate
+#    bpy.context.view_layer.objects.active = mesh  # make it "active"
+#    bpy.ops.object.duplicate()  # duplicate it
+#    duplicated_obj = bpy.context.active_object  # get the duplicated object, which is the active one
+#    # Apply armature modifier to duplicate
+#    bpy.ops.object.modifier_apply(modifier=armature_name)
+#    bpy.ops.object.origin_set(type='ORIGIN_CENTER_OF_VOLUME', center='MEDIAN')
+#    # Get COM of duplicate
+#    COM = copy.copy(duplicated_obj.location)
+#    world_rotation = mesh.matrix_world.to_3x3()#.normalized() # ADDED BY UNAI DEBUGGING
+#    COM = world_rotation @ COM # ADDED BY UNAI DEBUGGING
+#    # Delete duplicate
+#    bpy.ops.object.delete()
+#    return np.array(COM)
+
+#################################################
+def get_comch():
+    tmesh = get_trimesh_object()
+    return tmesh.convex_hull.center_mass
+#    # Select the object to duplicate
+#    bpy.context.view_layer.objects.active = mesh
+#    bpy.ops.object.mode_set(mode='OBJECT')
+#    bpy.ops.object.select_all(action='DESELECT')  # Deselect all objects
+#    mesh.select_set(True)  # Select the object you want to duplicate
+#    bpy.context.view_layer.objects.active = mesh  # make it "active"
+#    bpy.ops.object.duplicate()  # duplicate it
+#    duplicated_obj = bpy.context.active_object
+#    # Apply armature modifier
+#    bpy.ops.object.modifier_apply(modifier=armature_name)
+#    # Get the Convex Hull
+#    bpy.ops.object.mode_set(mode='EDIT')
+#    bpy.ops.mesh.convex_hull()
+#    bpy.ops.object.mode_set(mode='OBJECT')
+#    # Get COM of Convex Hull
+#    bpy.ops.object.origin_set(type='ORIGIN_CENTER_OF_VOLUME', center='MEDIAN')
+#    COM = copy.copy(duplicated_obj.location)
+#    world_rotation = mesh.matrix_world.to_3x3()# # ADDED BY UNAI DEBUGGING
+#    COM = world_rotation @ COM # ADDED BY UNAI DEBUGGING
+#    # Delete duplicate (i.e. the convex hull mesh)
+#    bpy.ops.object.delete()
+#    return np.array(COM)
+    
 
 #################################################
 
@@ -111,21 +167,42 @@ def compute_dot_products(v_idx):
     dp = np.dot(vertex_to_com,vertex_normal)
     dp_ch = np.dot(vertex_to_com_ch,vertex_normal)
     return dp, dp_ch
+#    bm = bmesh.new()
+#    bm.from_mesh(get_deformed_mesh())
+#    bm.verts.ensure_lookup_table()
+#    COM = get_com()
+#    COM_CH = get_comch()
+#    # Get the vertex normal
+#    world_rotation = mesh.matrix_world.to_3x3()#.normalized()
+#    vertex_normal = world_rotation @ bm.verts[v_idx].normal
+#    vertex_normal = vertex_normal / np.linalg.norm(vertex_normal)
+#    # Vectors going to com and com_ch
+#    vertex_to_com = COM - (mesh.matrix_world @ bm.verts[v_idx].co)
+#    vertex_to_com = vertex_to_com/np.linalg.norm(vertex_to_com)
+#    vertex_to_com_ch = COM_CH - (mesh.matrix_world @ bm.verts[v_idx].co)
+#    vertex_to_com_ch = vertex_to_com_ch/np.linalg.norm(vertex_to_com_ch)
+#    # Compute the dot produtcs
+#    dp = np.dot(vertex_to_com,vertex_normal)
+#    dp_ch = np.dot(vertex_to_com_ch,vertex_normal)
+#    return dp, dp_ch
 #################################################
 
-def compute_all_dot_products():
-    tmesh = get_trimesh_object()
-    COM = tmesh.center_mass
-    COM_CH = tmesh.convex_hull.center_mass
+def compute_all_dot_products(): # VERTEX NORMALS NOT UNITARY.
+#    tmesh = get_trimesh_object()
+    bm = bmesh.new()
+    bm.from_mesh(get_deformed_mesh())
+    bm.verts.ensure_lookup_table()
+    COM = get_com()
+    COM_CH = get_comch()
     # Get the vertex normal
-    vertex_normals = tmesh.vertex_normals
-    norm = np.linalg.norm(vertex_normals, axis=1)[:, None]
-    vertex_normals = vertex_normals/norm
+    world_rotation = mesh.matrix_world.to_3x3()#.normalized()
+    vertex_normals = [world_rotation @ vert.normal for vert in bm.verts]
     # Vectors going to com and com_ch
-    vertex_to_com = COM - tmesh.vertices
+    vertices = [mesh.matrix_world @ np.array(vertex.co) for vertex in bm.verts]
+    vertex_to_com = COM - vertices
     norm = np.linalg.norm(vertex_to_com, axis=1)[:, None]
     vertex_to_com = vertex_to_com/norm
-    vertex_to_com_ch = COM_CH - tmesh.vertices
+    vertex_to_com_ch = COM_CH - vertices
     norm = np.linalg.norm(vertex_to_com_ch, axis=1)[:, None]
     vertex_to_com_ch = vertex_to_com_ch/norm
     # Compute the dot produtcs
@@ -177,9 +254,11 @@ def show_vertex(v_idx,ball_size=0.003):
 def show_com(ball_size=0.003):
     """Creates an icosahedron at the location of the COM of the mesh"""
     # Get the mesh
-    tmesh = get_trimesh_object()
-    COM = tmesh.center_mass
+#    tmesh = get_trimesh_object()
+    COM = get_com()
+    COM = mathutils.Vector(COM)
     # Draw the icosahedron
+#    COM = mesh.matrix_world @ COM
     bpy.ops.mesh.primitive_ico_sphere_add(radius=1,
                                         enter_editmode=False, 
                                         align='WORLD', 
@@ -207,9 +286,12 @@ def run_target_optimization(epochs,step,reg_coef,v_idx=None,delta=0.0001):
     print('stopped after %i epochs' % i)
     
 #################################################
-# Method that saves the original angles for the armature in a text file and
+# Method that reads the original angles for the armature from a text file and
 # returns the angles as a dictionary
 def get_bone_angles():
+    # Set the armature as the active object
+    armature = bpy.data.objects.get(armature_name)
+    bpy.context.view_layer.objects.active = armature
     # First check if the text file exists
     angle_file_name = os.path.join(my_dir,armature_name+"_angles.pkl")
     if os.path.isfile(angle_file_name):
@@ -218,7 +300,7 @@ def get_bone_angles():
             bone_angles = pickle.load(file)
             return bone_angles
     # If there is no angle file, we make one
-    # Get the armature & target
+    # Get the armature
     armature = bpy.data.objects.get(armature_name)
     # Set mode to pose + get bone (assuming armature is selected)
     bpy.ops.object.mode_set(mode='POSE')
@@ -231,18 +313,63 @@ def get_bone_angles():
     with open(angle_file_name, 'wb') as file:
         pickle.dump(bone_angles, file)
     return bone_angles
-        
 
+#################################################
+# Saves the current bone angles to a file and restores the 
+# angles to the previous position
+def save_bone_angles(filepath):
+    # Get the armature
+    armature = bpy.data.objects.get(armature_name)
+    # Dictionary in which we will sabe the angles
+    bone_angles = {}
+    for bone in armature.pose.bones:
+        bone.rotation_mode = 'XYZ'
+        bone_angles[bone.name] = [0]*3
+        for i in range(3):
+            bone_angles[bone.name][i] = bone.rotation_euler[i]
+    # Save the dictionary
+    with open(filepath, 'wb') as file:
+        pickle.dump(bone_angles, file)
+        
+#################################################
+# Sets the angles of the armature to whatever they where at the beginning
+def reset_bone_angles():
+    # Get the armature
+    initial_angles = get_bone_angles()
+    armature = bpy.data.objects.get(armature_name)
+    # Set mode to pose + get bone (assuming armature is selected)
+    bpy.ops.object.mode_set(mode='POSE')
+    # Initial angles
+    # Dictionary in which we will sabe the angles
+    bone_angles = {}
+    for bone in armature.pose.bones:
+        bone.rotation_mode = 'XYZ'
+        for i in range(3):
+            a = bone.rotation_euler[i]
+            bone.rotation_euler[i] += (initial_angles[bone.name][i] - a)
+
+#################################################
+# sets the bone angles equal to the ones stored in a file
+def set_bone_angles(filepath):
+    if not os.path.isfile(filepath):
+        raise Exception("No angles file found")
+        
+    with open(filepath, 'rb') as file:
+        bone_angles = pickle.load(file)
+        # Get the armature
+        armature = bpy.data.objects.get(armature_name)
+        # Set mode to pose + get bone (assuming armature is selected)
+        bpy.ops.object.mode_set(mode='POSE')
+        for bone in armature.pose.bones:
+            bone.rotation_mode = 'XYZ'
+            for i in range(3):
+                a = bone.rotation_euler[i]
+                bone.rotation_euler[i] += (bone_angles[bone.name][i] - a)
+        
 #################################################
 # New optimization algo (gradient descent instead of fixed step-size)
 def approx_grad_descent(bone,v_idx,step,bone_angles,reg_coef = 0.01,w1=2,w2=1,barrier=None):
     '''Does one gradient descent step on each angle for the bone'''
-    
-    # Save the initial angles for regularization purposes
-#    try:
-#        bone["initial_angles"] = bone["initial_angles"]
-#    except:
-#        bone["initial_angles"] = [bone.rotation_euler[i] for i in range(3)]
     
     # Read the initial angles
     initial_angles = bone_angles[bone.name]
@@ -273,10 +400,11 @@ def approx_grad_descent(bone,v_idx,step,bone_angles,reg_coef = 0.01,w1=2,w2=1,ba
 #################################################
 def run_optimization(epochs,step,reg_coef,v_idx=None,delta=0.0001,w1=2,w2=1,barrier=None):
     
-    energy_history = []
+    dp_history = []
     # Get the armature & target
     armature = bpy.data.objects.get(armature_name)
     # Set mode to pose + get bone (assuming armature is selected)
+    bpy.context.view_layer.objects.active = armature
     bpy.ops.object.mode_set(mode='POSE')
     
     # Select vertex for the optimization
@@ -296,27 +424,30 @@ def run_optimization(epochs,step,reg_coef,v_idx=None,delta=0.0001,w1=2,w2=1,barr
             if not bone.parent:
                 approx_grad_descent(bone,v_idx,step,bone_angles,
                 reg_coef,w1=w1,w2=w2,barrier=barrier)
+        # Save the current value of the dot products
+        dp,dp_ch = compute_dot_products(v_idx)
+        dp_history.append((dp,dp_ch))
         # Termination criterion without regularization
         new_energy = objective_function(v_idx,w1=w1,w2=w2,barrier=barrier)
-        energy_history.append(new_energy)
         if abs(new_energy - old_energy) < delta:  # NOTE: Change to "energy()" for testing target task.
             break
         
     print('stopped after %i epochs' % i)
         
     # Print final values of dot products
-    dp, dp_ch = compute_dot_products(v_idx)
+    (dp, dp_ch) = dp_history[-1]
+    print("Final values dp={a}, dp_ch={b}".format(a=dp,b=dp_ch))
     print("Variations: dp_new-dp_old={a}, dp_ch_new-dp_ch_old={b}".format(a=dp-dp_old,b=dp_ch-dp_ch_old))
     # Update the scene to reflect the changes
     bpy.context.scene.frame_set(bpy.context.scene.frame_current)
-    return energy_history
+    return np.array(dp_history)
 
 #################################################
 def reorient(v_idx, disp_balls=False,ball_size=0.001):
     # Get the COM and vertex (contains some duplicate code)
     # 1 – COM
-    tmesh = get_trimesh_object()
-    COM = tmesh.center_mass
+#    tmesh = get_trimesh_object()
+    COM = get_com()
     # 2 – Vertex
     dmesh = get_deformed_mesh()
     bm = bmesh.new()
@@ -356,25 +487,133 @@ def reorient(v_idx, disp_balls=False,ball_size=0.001):
     # Refresh
     bpy.context.view_layer.update()
     
+#################################################
+# Computes Gaussian curvature of every vertex
+def gaussian_curvature():
+    # Get the mesh
+    mesh = get_deformed_mesh()
+    nV = len(mesh.vertices)
+    curvature = np.zeros(nV)
+    # Iterate over all vertices
+    for vertex_index in range(nV):
+        vertex = mesh.vertices[vertex_index]
+        edges = [edge for edge in mesh.edges if vertex_index in edge.vertices]
+        angles_sum = 0
+
+        # Loop through edges connected to the vertex
+        for edge in edges:
+            other_vertex_index = edge.vertices[0] if edge.vertices[1] == vertex_index else edge.vertices[1]
+            other_vertex = mesh.vertices[other_vertex_index]
+
+            # Compute angle between edges connected to the vertex
+            v1 = (other_vertex.co - vertex.co).normalized()
+            v2 = (mesh.vertices[edge.vertices[0]].co - vertex.co).normalized()
+            # Calculate the dot product and clamp it within the valid range
+            dot_product = min(1, max(-1, v1.dot(v2)))
+            angle = math.acos(dot_product)
+
+            angles_sum += angle
+
+        # Calculate Gaussian curvature
+        curvature[vertex_index] = (2 * math.pi - angles_sum) / len(edges)
+
+    return curvature
+#################################################
+# Selects a specified number of vertices using Gaussian curvature
+# and saves the selected indices in a txt file
+def select_indices_with_curvature(num_samples,indices_path,alpha=1):
+    curvature = gaussian_curvature()
+    nV = len(curvature)
+    P = np.abs(curvature)**alpha
+    P = P/np.sum(P)
+    indices = np.random.choice(nV,size=num_samples,p=P,replace=False)
+    # Save indices in file
+    if os.path.isfile(indices_path):
+        old_indices = np.loadtxt(indices_path,dtype=int)
+        new_indices = np.append(old_indices,indices)
+        np.savetxt(indices_path,new_indices,fmt="%i")
+    else:
+        np.savetxt(indices_path,indices,fmt="%i")
+    return indices
     
 #################################################
+# Returns a dictionary fo the paths in which we have results saved
+# with values being the corresponding vertex indices
+def get_result_paths(result_dir,indices_path):
+    # Load the indices
+    indices =  np.loadtxt(indices_path,dtype=int)
+    # Files containing results
+    file_names = os.listdir(result_dir)
+    if ".DS_Store" in file_names:
+        file_names.remove(".DS_Store")
+    # Return a dictionary with index-path correspondence
+    paths = {}
+    for idx in indices:
+        for i, name in enumerate(file_names):
+            if str(idx) in name:
+                path = os.path.join(result_dir,name)
+                paths[idx] = path
+                break
+    return paths
 
-finger_tips = [685,857,1763,1251,1360]
-#pics_path = "/Users/unaicaja/Documents/GitHub/magic-physics-illusions/blender/pics"
-finger_num = 3
-v_idx = finger_tips[finger_num-1]
-epochs = 4;step = 0.02;reg_coef = 1;delta=0.001
-w1=0.1;w2=4;barrier=None
-energy_history = run_optimization(epochs,step,
+################################################
+## Prepare paths
+result_dir = os.path.join(my_dir,"results")
+plot_dir = os.path.join(my_dir,"plots")
+indices_path = os.path.join(my_dir,"indices.txt")
+#################################################
+# RUNNING THE OPTIMIZATION ON SEVERAL VERTICES
+# Select indices for experiments
+num_trials = 4
+#indices = select_indices_with_curvature(num_trials,indices_path,alpha=2)
+#indices = np.loadtxt(indices_path,dtype=int)
+indices = [677]
+# Set parameters for optimization
+epochs = 15;step = 0.01;reg_coef = 1;delta=0.001;w1=0.33;w2=0.1
+v_idx = indices[0]
+dp,dp_ch = compute_dot_products(v_idx)
+barrier=dp*0.97#None
+# Interate optimization
+paths = get_result_paths(result_dir,indices_path)# REMOVE
+for v_idx in indices:
+    path = paths[v_idx]# REMOVE
+    set_bone_angles(path)# REMOVE
+    # Save dot product history and resulting
+    dp_history = run_optimization(epochs,step,
     reg_coef,v_idx=v_idx,delta=delta,w1=w1,w2=w2,barrier=barrier)
-    
-## Making energy plot
-#xx = range(len(energy_history))
-#plt.clf()
-#plt.plot(xx,energy_history)
-#plt.title("Finger {a}, step {b}, reg_coef {c}".format(a=finger_num,b=step,c=reg_coef))
-#plt.xlabel("Epochs")
-#plt.ylabel("Obj. value")
-#path = pics_path + "/energy.pdf"
-#plt.savefig(path)
-#reorient(v_idx=v_idx,disp_balls = True,ball_size=0.01)
+    filepath = os.path.join(result_dir,"hand_test{i}.pkl".format(i=v_idx))
+    # Get values for the evolution of dp, dp_ch
+    dps = dp_history[:,0]
+    dp_chs = dp_history[:,1]
+    epochs_completed = range(len(dps))
+    # Make plot
+    plt.clf()
+    plt.plot(epochs_completed,dps,label="dp")
+    plt.plot(epochs_completed,dp_chs,label="dp_ch")
+    plt.xlabel("Epochs")
+    plt.legend(loc="upper right")
+    plt.title("v_idx={i}, w1={a}, w2={b}".format(i=v_idx,a=w1,b=w2))
+    # Save plot
+    plot_path = os.path.join(plot_dir,"hand_test{i}_continuation2.pdf".format(i=v_idx))
+    plt.savefig(plot_path)
+    # Save angle information in path
+    armature = bpy.data.objects.get(armature_name)
+    bpy.context.view_layer.objects.active = armature
+    bpy.ops.object.mode_set(mode='POSE')
+#    save_bone_angles(filepath)
+#    reset_bone_angles()
+################################################
+## LOOKING AT THE RESULTS
+#v_idx = 677
+#paths = get_result_paths(result_dir,indices_path)
+#path = paths[v_idx]
+#set_bone_angles(path)
+##reset_bone_angles()
+#ball_size = 0.02
+##show_com(ball_size=ball_size)
+##show_vertex(v_idx, ball_size=ball_size)
+##reorient(v_idx,disp_balls=True,ball_size=ball_size)
+#dp,dp_ch = compute_dot_products(v_idx)
+#text = "dp="+str(dp)+", dp_ch=" + str(dp_ch)
+#print(text)
+################################################
