@@ -170,3 +170,5 @@ cython_debug/
 rignet_watertight/
 # Ignoring files in blender/results
 blender/results/
+# Ignoring files in blender/plots (we'll only save the plots that are saved as "final")
+blender/plots
