@@ -168,3 +168,5 @@ cython_debug/
 # Add your subdirectory ignore rules at the end
 # Ignoring files in rignet_watertight
 rignet_watertight/
+# Ignoring files in blender/results
+blender/results/
