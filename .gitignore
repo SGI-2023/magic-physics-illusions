@@ -174,3 +174,5 @@ blender/results/
 blender/plots
 # Ignoring files in example_meshes folder
 example_meshes/
+# Ignoring files in random_stuff folder
+blender/random_stuff
