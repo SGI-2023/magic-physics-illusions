@@ -172,3 +172,5 @@ rignet_watertight/
 blender/results/
 # Ignoring files in blender/plots (we'll only save the plots that are saved as "final")
 blender/plots
+# Ignoring files in example_meshes folder
+example_meshes/
