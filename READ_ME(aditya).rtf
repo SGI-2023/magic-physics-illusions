@@ -1,0 +1,22 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2759
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 Instructions to operate:\
+\
+1. my_script contains the OLD script, without the distance based optimization function. my_script_new contains the new script with the distance based optimization.\
+\
+2. To run the algorithm, first set the name of the plot files in the code to something you can recognize, and delete any old plots from the plots folder.\
+\
+3. DELETE THE OLD Armature.pkl FILE!!\
+\
+4. Load up an .fbx of the mesh u wanna try. \
+\
+5. Select the verts you want to optimize for, AND THEN GO INTO OBJECT MODE. Now set the state = 0 and let it run. The indices of the selected verts should be stored in the indices.txt file now.\
+\
+6. Set state = 1 and let it sit, running the optimization for however many epochs you set it. When it\'92s done, look at the plots. Note down whichever ones have the most potential. (Dp close to 1 and dp_ch close to -1).\
+\
+7. Set state = 2 and investigate the vertices one by one by setting vertex = <index to investigate>. Then run it, and it should display the deformed version. }
