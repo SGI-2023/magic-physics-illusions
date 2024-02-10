@@ -13,7 +13,7 @@ mesh_name = "my_hand"
 our_name = "hand_with_ball"
 armature_name = "Armature"
 useless_bone = "wrist"
-my_dir = "/Users/unaicaja/Library/CloudStorage/OneDrive-Personal/blender playground/cool results with ball/Hand"
+my_dir = "/Users/unaicaja/Documents/GitHub/magic-physics-illusions/blender/current lab"
 result_dir = os.path.join(my_dir,"results")
 plot_dir = os.path.join(my_dir,"plots")
 indices_path = os.path.join(my_dir,"indices.txt")
@@ -389,6 +389,17 @@ def compute_dps_and_distances(params):
 #################################################
 #################################################
 # OPTIMISATION CODE
+def barrier_fun(x,x_min):
+    """
+    Evaluate barrier function at x.
+
+    It is of class C1, 0 when x >= x_max and goes to +infinity when x approaches 0.
+    """
+    if x >= x_min:
+        return 0
+    else:
+        return (x-x_min)*np.log(x/x_min)
+
 def dist_ball_to_outside():
     """Computes the signed distance from the ball to the outside of the mesh."""
     # Get vertex list
@@ -432,16 +443,22 @@ def objective_function(params):
         obj_fun = dist_to_outside-mdto
         if obj_fun <= 0:
             raise Exception("Ball too close to the surface")
-        obj_fun = params["ball_coef"]/obj_fun
+        obj_fun = barrier_fun(x=dist_to_outside-mdto,x_min=4*mdto)
         
     dp, dp_ch, dist_com, dist_com_ch = compute_dps_and_distances(params)
+    
+    # Add penalization when com and com_ch are too close to the vertex
+    dist_coef = params["dist_coef"]; mdtv = params["mdtv"]
+    obj_fun += dist_coef*barrier_fun(x=dist_com,x_min=mdtv)
+    obj_fun += dist_coef*barrier_fun(x=dist_com_ch,x_min=mdtv)
+
     if barrier == None:
-        return obj_fun + (w1/dist_com**2)*(dp-1)**2  + (w2/dist_com_ch**2)*(dp_ch + 1)**2
+        return obj_fun + w1*(dp-1)**2  + w2*(dp_ch + 1)**2
     
     # the objective function which will force dp >= barrier (for example 0.95)
     if dp - barrier <= 0:
         raise Exception("dp decreased too much")
-    return obj_fun + w2 * (dp_ch + 1)**2 * dist_com_ch**2 - w1*np.log(dp - barrier)
+    return obj_fun + w2*(dp_ch + 1)**2 + w1*barrier_fun(x=dp-barrier,x_min=1-barrier)
 #################################################
 # New optimization algo (gradient descent instead of fixed step-size)
 def bone_grad_descent(bone,init_angles,params):
@@ -461,13 +478,16 @@ def bone_grad_descent(bone,init_angles,params):
             bone_grad_descent(bone=child,init_angles=init_angles,params=params)
         return
 
+    old_energy = objective_function(params)
     # Read necessary parameters
-    reg_coef = params["reg_coef"]; diff_step = 180 * params["diff_step_bone"]
-    step = params["armature_step"]
+    reg_coef = params["reg_coef"]; diff_step = params["diff_step_bone"]
+    step = params["armature_steps"][bone.name]
     # Read the initial angles
     initial_angles = init_angles[bone.name]
     # Optimization for bone angles
     bone.rotation_mode = 'XYZ'
+    # Compute gradient
+    grad = np.array([0.0]*3)
     for i in range(3):
         # Compute energies at two points
         bone.rotation_euler[i] += diff_step
@@ -484,22 +504,32 @@ def bone_grad_descent(bone,init_angles,params):
         # Set the angle back to its original value
         bone.rotation_euler[i] += diff_step
         # Approximate the derivative at that point
-        bone_deriv = (plus_energy - minus_energy)/(2*diff_step)
-        #Update the angle
-        step = -step*bone_deriv
-        # Make sure we do not move more than one degree at a time
-        step = np.min([step,1]) * np.sign(step)
-        bone.rotation_euler[i] += step
+        grad[i] = (plus_energy - minus_energy)/(2*diff_step)
+
+    #Normalize gradient and update
+    grad /= np.linalg.norm(grad)
+    #Update the angle
+    for i in range(3):
+        bone.rotation_euler[i] += step*grad[i]
+    # Update bone steps for future iterations
+    new_energy = objective_function(params)
+    if new_energy < old_energy:
+        step *= params["amplification_factor"]
+    else:
+        step *= params["contraction_factor"]
+    params["armature_steps"][bone.name] = step
     
     # Recurse
     for child in bone.children:
         bone_grad_descent(bone=child,init_angles=init_angles,params=params)
+
 #################################################
 def ball_grad_descent(params):
     """
     Optimization for ball location and radius
     """
 
+    old_energy = objective_function(params)
     # Get necessary parameters
     mesh_size = max(mesh.dimensions)
     diff_step = params["diff_step_ball"]*mesh_size
@@ -536,6 +566,13 @@ def ball_grad_descent(params):
     loc_gradient /= np.linalg.norm(loc_gradient)
     for i in range(3):
         metal_ball.location[i] -= step*loc_gradient[i]
+    
+    # Update the steps of the algorithm for later iterations
+    new_energy = objective_function(params)
+    if new_energy < old_energy:
+        params["ball_step"] *= params["amplification_factor"]
+    else:
+        params["ball_step"] *= params["contraction_factor"]
 
 #################################################
 def run_optimization(params):
@@ -553,7 +590,7 @@ def run_optimization(params):
 
     if params["animation"]:
         # Set total number of frames
-        frames_per_key = params["num_frames"]
+        frames_per_key = params["frames_per_key"]
         bpy.context.scene.frame_end = frames_per_key*params["epochs"]
         # Set initial keyframe
         make_keyframes(armature=armature,frame=0)
@@ -579,12 +616,16 @@ def run_optimization(params):
         # Gradient descent on ball
         if params["using_ball"]:
             ball_grad_descent(params=params)
+            
+        
         # Save the data for plotting
         dp, dp_ch, dist_com, dist_com_ch = compute_dps_and_distances(params)
         dp_history.append((dp,dp_ch,dist_com,dist_com_ch))
 
         # Animation code
-        if params["animation"]: make_keyframes(armature=armature,frame=num_keys*frames_per_key)
+        if params["animation"]: 
+            make_keyframes(armature=armature,frame=num_keys*frames_per_key)
+            num_keys += 1
 
         # Termination criterion without regularization
         new_energy = objective_function(params)
@@ -610,8 +651,9 @@ def make_keyframes(armature,frame):
     for bone in armature.pose.bones:
             bone.keyframe_insert("rotation_euler",frame=frame)
     # Ball
-    metal_ball.keyframe_insert("location",frame=frame)
-    metal_ball.keyframe_insert("scale",frame=frame)
+    if params["using_ball"]:
+        metal_ball.keyframe_insert("location",frame=frame)
+        metal_ball.keyframe_insert("scale",frame=frame)
 
     
 
@@ -625,28 +667,38 @@ def make_keyframes(armature,frame):
 ################################################
 ################################################
 # RUNNING THE OPTIMIZATION ON SEVERAL VERTICES
-indices = [1763]
 # Select indices for experiments
+indices = [1763]
+
 params = {
     "v_idx" : indices[0],
     "using_ball" : True,
-    "epochs" : 20,
-    "armature_step" : 1e-3,
-    "ball_step" : 1e-3,
-    "w1" : 2,
-    "w2" : 1,
-    "ball_coef" : 10,
-    "min_r" : 5e-2,# Minimum radius for the ball
-    "mdto": 1e-4,
+    "epochs" : 3,
+    "init_armature_step" : 1e-3, # Initial step for gradient descent on the ball
+    "ball_step" : 1e-3, # Initial step for gradient descent on the ball
+    "w1" : 2, # Coefficient for dp
+    "w2" : 1, # Coefficient for dp_ch
+    "ball_coef" : 1,
+    "dist_coef" : 1, # Coefficients for the barrier term involving the distance to the vertex
+    "min_r" : 5e-4,# Minimum radius for the ball
+    "mdto" : 1e-4, # The barrier term blows up when distance(ball,outside) = mdto
+    "mdtv" : 1e-2, # If distance(com,vertex) < mdtv then the barrier term activates
     "reg_coef" : 3,
-    "diff_step_bone": 1e-4,
+    "amplification_factor" : 1.05, #Amplification factor to update step of the algorithm
+    "contraction_factor" : 0.95, #Contraction factor to update step of the algorithm
+    "diff_step_bone": 1e-2,
     "diff_step_ball": 1e-5,
     "delta" : 1e-5,
     "barrier" : None, #0.95*dp
     "ball_size_for_display": 0.003,
     "animation": True,
-    "num_frames": 20,
+    "frames_per_key": 5,
 }
+# Make a step for each bone
+armature = bpy.data.objects.get(armature_name)
+armature_steps = {bone.name: params["init_armature_step"] for bone in armature.pose.bones}
+params["armature_steps"] = armature_steps
+
 dp, dp_ch, dist_com, dist_com_ch = compute_dps_and_distances(params)
 # Parameters for algorithm
 reset_scene_parameters(params)
