@@ -9,10 +9,10 @@ import trimesh
 
 #################################################
 # PARAMETERS
-mesh_name = "my_hand"
-our_name = "hand_with_ball"
+mesh_name = "squirrel"
+our_name = "squirrel"
 armature_name = "Armature"
-useless_bone = "wrist"
+useless_bone = "Waist"
 my_dir = "/Users/unaicaja/Documents/GitHub/magic-physics-illusions/blender/current lab"
 result_dir = os.path.join(my_dir,"results")
 plot_dir = os.path.join(my_dir,"plots")
@@ -20,7 +20,7 @@ indices_path = os.path.join(my_dir,"indices.txt")
 mesh = bpy.data.objects[mesh_name]  # (basically just needed for local to global coord matrix)
 
 # For ball, comment if we are not using one
-ABS_density = 1.05 # g/cm3 #? MULTIPLY BY FACTOR
+ABS_density = 1.05 * 0.15 # g/cm3 #? MULTIPLY BY FACTOR
 steel_density = 7.9 # g/cm3
 alpha = steel_density/ABS_density
 metal_ball = bpy.data.objects["metal_ball"]
@@ -439,11 +439,11 @@ def objective_function(params):
     if using_ball:
         # We define a barrier term
         dist_to_outside = dist_ball_to_outside()
-        mdto = params["mdto"]*max(mesh.dimensions)
+        mdto = params["mdto"]
         obj_fun = dist_to_outside-mdto
         if obj_fun <= 0:
             raise Exception("Ball too close to the surface")
-        obj_fun = barrier_fun(x=dist_to_outside-mdto,x_min=4*mdto)
+        obj_fun = barrier_fun(x=dist_to_outside-mdto,x_min=5*mdto)
         
     dp, dp_ch, dist_com, dist_com_ch = compute_dps_and_distances(params)
     
@@ -507,10 +507,10 @@ def bone_grad_descent(bone,init_angles,params):
         grad[i] = (plus_energy - minus_energy)/(2*diff_step)
 
     #Normalize gradient and update
-    grad /= np.linalg.norm(grad)
+    # grad /= np.linalg.norm(grad)
     #Update the angle
     for i in range(3):
-        bone.rotation_euler[i] += step*grad[i]
+        bone.rotation_euler[i] -= step*grad[i]
     # Update bone steps for future iterations
     new_energy = objective_function(params)
     if new_energy < old_energy:
@@ -591,9 +591,10 @@ def run_optimization(params):
     if params["animation"]:
         # Set total number of frames
         frames_per_key = params["frames_per_key"]
-        bpy.context.scene.frame_end = frames_per_key*params["epochs"]
+        init_frame = params["init_frame"]
+        bpy.context.scene.frame_end = init_frame + frames_per_key*params["epochs"]
         # Set initial keyframe
-        make_keyframes(armature=armature,frame=0)
+        make_keyframes(armature=armature,frame=init_frame)
         num_keys = 1
 
     dp_old,dp_ch_old, dist_com_old, dist_com_ch_old= compute_dps_and_distances(params)
@@ -624,7 +625,7 @@ def run_optimization(params):
 
         # Animation code
         if params["animation"]: 
-            make_keyframes(armature=armature,frame=num_keys*frames_per_key)
+            make_keyframes(armature=armature,frame=init_frame+num_keys*frames_per_key)
             num_keys += 1
 
         # Termination criterion without regularization
@@ -668,31 +669,32 @@ def make_keyframes(armature,frame):
 ################################################
 # RUNNING THE OPTIMIZATION ON SEVERAL VERTICES
 # Select indices for experiments
-indices = [1763]
+indices = [347]
 
 params = {
     "v_idx" : indices[0],
     "using_ball" : True,
-    "epochs" : 3,
+    "epochs" : 50,
     "init_armature_step" : 1e-3, # Initial step for gradient descent on the ball
-    "ball_step" : 1e-3, # Initial step for gradient descent on the ball
-    "w1" : 2, # Coefficient for dp
-    "w2" : 1, # Coefficient for dp_ch
+    "ball_step" : 1e-2, # Initial step for gradient descent on the ball
+    "w1" : 3, # Coefficient for dp
+    "w2" : 0, # Coefficient for dp_ch
     "ball_coef" : 1,
-    "dist_coef" : 1, # Coefficients for the barrier term involving the distance to the vertex
-    "min_r" : 5e-4,# Minimum radius for the ball
-    "mdto" : 1e-4, # The barrier term blows up when distance(ball,outside) = mdto
-    "mdtv" : 1e-2, # If distance(com,vertex) < mdtv then the barrier term activates
+    "dist_coef" : 0.5, # Coefficients for the barrier term involving the distance to the vertex
+    "min_r" : 6e-2,# Minimum radius for the ball
+    "mdto" : 2e-2, # The barrier term blows up when distance(ball,outside) = mdto
+    "mdtv" : 1e-3, # If distance(com,vertex) < mdtv then the barrier term activates
     "reg_coef" : 3,
     "amplification_factor" : 1.05, #Amplification factor to update step of the algorithm
     "contraction_factor" : 0.95, #Contraction factor to update step of the algorithm
     "diff_step_bone": 1e-2,
     "diff_step_ball": 1e-5,
     "delta" : 1e-5,
-    "barrier" : None, #0.95*dp
-    "ball_size_for_display": 0.003,
+    "barrier" : None,#0.95, #0.95
+    "ball_size_for_display": 0.1,
     "animation": True,
     "frames_per_key": 5,
+    "init_frame" : 250
 }
 # Make a step for each bone
 armature = bpy.data.objects.get(armature_name)
@@ -701,36 +703,33 @@ params["armature_steps"] = armature_steps
 
 dp, dp_ch, dist_com, dist_com_ch = compute_dps_and_distances(params)
 # Parameters for algorithm
-reset_scene_parameters(params)
+#reset_scene_parameters(params)
 
 text = "The initial dot products are dp={dp}, dp_ch={dp_ch}".format(dp=dp,dp_ch=dp_ch)
 print(text)
 # Interate optimization
-for idx in indices:
-    params["v_idx"] = idx
-    # Save dot product history and resulting
-    dp_history = run_optimization(params)
-    # Get values for the evolution of dp, dp_ch
-    dps = dp_history[:,0]
-    dp_chs = dp_history[:,1]
-    epochs_completed = range(len(dps))
-    # Make plot
-    plt.clf()
-    plt.plot(epochs_completed,dps,label="dp")
-    plt.plot(epochs_completed,dp_chs,label="dp_ch")
-    plt.xlabel("Epochs")
-    plt.legend(loc="upper right")
-    plt.title("v_idx={i}, w1={a}, w2={b}".format(i=idx,a=params["w1"],b=params["w2"]))
-    # Save plot
-    plot_path = os.path.join(plot_dir,"sea_horse{i}_metal_ball.pdf".format(i=idx))
-    plt.savefig(plot_path)
-    # Save angle information in path
-    armature = bpy.data.objects.get(armature_name)
-    bpy.context.view_layer.objects.active = armature
-    bpy.ops.object.mode_set(mode='POSE')
-
-#result_path = os.path.join(result_dir,"hand{i}_metal_ball.pkl".format(i=idx))
-#save_scene_parameters(params=params,filepath=result_path)
+#for idx in indices:
+#    params["v_idx"] = idx
+#    # Save dot product history and resulting
+#    dp_history = run_optimization(params)
+#    # Get values for the evolution of dp, dp_ch
+#    dps = dp_history[:,0]
+#    dp_chs = dp_history[:,1]
+#    epochs_completed = range(len(dps))
+#    # Make plot
+#    plt.clf()
+#    plt.plot(epochs_completed,dps,label="dp")
+#    plt.plot(epochs_completed,dp_chs,label="dp_ch")
+#    plt.xlabel("Epochs")
+#    plt.legend(loc="lower right")
+#    plt.title("v_idx={i}, w1={a}, w2={b}".format(i=idx,a=params["w1"],b=params["w2"]))
+#    # Save plot
+#    plot_path = os.path.join(plot_dir,"mewto{i}_metal_ball.pdf".format(i=idx))
+#    plt.savefig(plot_path)
+#    # Save angle information in path
+#    armature = bpy.data.objects.get(armature_name)
+#    bpy.context.view_layer.objects.active = armature
+#    bpy.ops.object.mode_set(mode='POSE')
 
 
 
